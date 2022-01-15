@@ -1,0 +1,22 @@
+Metadata-Version: 2.1
+Name: Gmailtools
+Version: 0.0.17
+Summary: A command-line interface for using the Gmail API
+Home-page: https://github.com/pypa/gmailtools-rheslin
+Author: Ryan Heslin
+Author-email: rh3788a@american.edu
+License: UNKNOWN
+Project-URL: Bug Tracker, https://github.com/pypa/gmailtools/issues
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+*Gmailtools*
+
+This package implements a command-line interface for using the Gmail API to search for and send emails.
+
+
