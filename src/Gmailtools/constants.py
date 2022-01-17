@@ -1,7 +1,7 @@
 import html2text
 
 html_decoder = html2text.HTML2Text()
-html_decoder.ignore_links = True
+# html_decoder.ignore_links = True
 html_decoder.ignore_images = True
 html_decoder.body_width = 80
 

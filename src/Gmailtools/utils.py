@@ -132,25 +132,48 @@ def get_message(gmail_service, userId="me", **kwargs):
     return gmail_service.users().messages().list(userId=userId, **kwargs).execute()
 
 
-def parse_message(message):
+def parse_message(gmail_service, message):
     """Traverse message to extract sender, recipient, date, and text"""
-    parsed = extract_header(message["headers"])
-    try:
-        parsed["body"] = extract_text(message["parts"])
-    except KeyError:
-        # Bodiless message, return unparsed
-        parsed["body"] = None
-    message_id = parsed.pop("id")
-    return message_id, parsed
+    header = extract_header(message["headers"])
+    parsed = extract_text(gmail_service, message=message, message_id=header["id"])
+    message_id = header.pop("id")
+    return message_id, {**header, **parsed}
 
 
-def extract_text(parts):
+def extract_text(gmail_service, message, message_id):
     """Recurses through message parts until plain text part is discovered"""
-    for part in parts:
-        if "mulipart" in part["mimeType"]:
-            return extract_text(part)
-        elif part["mimeType"] == "text/plain":
-            return decode_message(part["body"]["data"], constants.html_decoder)
+    out = {"body": None, "attachments": {}}
+    # Based on https://stackoverflow.com/questions/25832631/download-attachments-from-gmail-using-gmail-api
+    parts = [message]
+    while parts:
+        cur = parts.pop()
+        if "multipart" in cur["mimeType"]:
+            parts.extend(cur["parts"])
+        elif cur["mimeType"] == "text/plain":
+            out["body"] = decode_message(cur["body"]["data"], constants.html_decoder)
+        elif cur["mimeType"] == "filename":
+            try:
+                data = cur["body"]["data"]
+            except KeyError:
+                data = (
+                    gmail_service.users()
+                    .messages()
+                    .attachments()
+                    .get(
+                        userId="me",
+                        messageId=message_id,
+                        id=cur["body"]["attachmentId"],
+                    )
+                    .execute()["data"]
+                )
+            except:
+                data = None
+            if data:
+                data = base64.urlsafe_b64decode(data.encode("UTF-8"))
+            # Key attachment data to names
+            out["attachments"][cur["filename"]] = data
+
+    return out
 
 
 def extract_header(header, to_extract=None):
@@ -173,11 +196,9 @@ def extract_header(header, to_extract=None):
         },
     }
     if filtered["id"] is None:
-        filtered["id"] = (
-            f"Unidentified (sent {filtered['date']})"
-            if "date" in filtered.keys()
-            else "Unidentified (date unknown)"
-        )
+        filtered[
+            "id"
+        ] = f"Unidentified (sent {filtered.get('date', 'Unidentified (date unknown)')!r})"
     return filtered
 
 
@@ -200,7 +221,11 @@ def decode_message(message, html_decoder=None):
     return message
 
 
-def format_print_dict(di, subvalue_extract=lambda x: x, none_placeholder="None"):
+def format_print_dict(
+    di,
+    subvalue_extract=lambda x: " ".join(x) if isinstance(x, list) and len(x) > 0 else x,
+    none_placeholder="None",
+):
     """
     Given a dict, returns a formatted sting suitable for printing its key-value pairs. A function to
     process dictionary entries, and placeholders for keys or values that are :code:`None`,
@@ -213,18 +238,18 @@ def format_print_dict(di, subvalue_extract=lambda x: x, none_placeholder="None")
     :param none_placeholder: String to print for keys and values that are :code:`None`, defaults to "None".
     :type none_placeholder: str, optional
     """
-    if not di:
-        return "Nothing to display"
     if type(di) is str:
         return di
+    if not di:
+        return "Nothing to display"
     lpad = max([len(k) for k in di.keys()]) + 1
     fmt = "{:<" + str(lpad) + "}" + " {:" + str(lpad) + "}"
     return "\n".join(
         [
             fmt.format(
-                k if k is not None else none_placeholder + ":",
+                (k if k is not None else none_placeholder) + ":",
                 subvalue_extract(v)
-                if subvalue_extract(v) is not None
+                if subvalue_extract(v) not in (None, [], {})
                 else none_placeholder,
             )
             for k, v in di.items()
@@ -241,13 +266,11 @@ def print_message(message):
     :param message: An :code:`email.message` object.
     :type message: email.message
     """
-    body = message["body"]
-    print(format_print_dict(body))
-    print(("_" * 80) + "\n")
-    if body is not None:
-        print(body)
-    else:
-        print("Message has no body")
+    print(format_print_dict(message))
+
+
+def print_sep(char="_", length=80):
+    print((char * length) + "\n")
     print("\n")
 
 
@@ -377,6 +400,17 @@ def send_message(service, message, user_id="me"):
     except HTTPError as error:
         print(f"HTTP error: {error}")
     return message
+
+
+def validate_path(path, *args):
+    """Confirms a path exists and user has write permission for its directory. Also applies arbitrary additional functions to validate the path"""
+    path = os.path.expandvars(os.path.expanduser(path))
+    args = [
+        lambda x: os.path.exists(os.path.abspath(x)),
+        lambda x: os.access(os.path.dirname(x), os.W_OK),
+        *args,
+    ]
+    return all(fn(path) for fn in args)
 
 
 def reduce_keys(di, keys):

@@ -231,6 +231,8 @@ def query_emails():
         .execute()["payload"]
         for message in messages
     ]
+    breakpoint()
+
     parsed_messages = dict([utils.parse_message(message) for message in raw_messages])
     if not quiet:
         for message in parsed_messages.values():

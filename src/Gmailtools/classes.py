@@ -2,7 +2,7 @@ import argparse as ap
 
 from Gmailtools import utils
 import sys
-import os.path
+import os
 
 
 class TupleDict:
@@ -39,37 +39,50 @@ class TupleDict:
 
 class QueryAction(ap.Action):
 
+    ascii_replaces = {k: 0 for k in range(48, 48 + 10)}
+    mapping = TupleDict(
+        {
+            ("-f", "--from"): {"category": "from", "sep": ":", "surround": ""},
+            ("-w", "--words"): {"category": "", "sep": "", "surround": '"'},
+            ("-t", " --to"): {"category": "to", "sep": ":", "surround": ""},
+            ("-l", " --label"): {"category": "label", "sep": ":", "surround": ""},
+            ("-c", "--category"): {
+                "category": "category",
+                "sep": ":",
+                "surround": "",
+            },
+            ("-s", " --subject"): {
+                "category": "subject",
+                "sep": ":",
+                "surround": "",
+            },
+            ("--filename",): {"category": "filename", "sep": ":", "surround": ""},
+            ("-b", "--before"): {"category": "before", "sep": ":", "surround": ""},
+            ("-a", "--after"): {"category": "after", "sep": ":", "surround": ""},
+        }
+    )
+
     """Overrides superclass method.
     Maps each option string to the corresponding search term, then
     prepends it to corresponding arguments separated by colons"""
 
     def __init__(self, option_strings, dest, nargs, **kwargs):
         super().__init__(option_strings, dest, nargs, **kwargs)
-        self.mapping = TupleDict(
-            {
-                ("-f", "--from"): {"category": "from", "sep": ":", "surround": ""},
-                ("-w", "--words"): {"category": "", "sep": "", "surround": '"'},
-                ("-t", " --to"): {"category": "to", "sep": ":", "surround": ""},
-                ("-l", " --label"): {"category": "label", "sep": ":", "surround": ""},
-                ("-c", "--category"): {
-                    "category": "category",
-                    "sep": ":",
-                    "surround": "",
-                },
-                ("-s", " --subject"): {
-                    "category": "subject",
-                    "sep": ":",
-                    "surround": "",
-                },
-                ("--filename",): {"category": "filename", "sep": ":", "surround": ""},
-                ("-b", "--before"): {"category": "before", "sep": ":", "surround": ""},
-                ("-a", "--after"): {"category": "after", "sep": ":", "surround": ""},
-            }
-        )
 
     def __call__(self, parser, namespace, argument_values, option_strings=None):
-        if self.mapping[option_strings]["category"] in ("before", "after"):
-            utils.validate_before_present(argument_values, ("%Y/%m/%d", "%m/%d/%Y"))
+        # Date validation: confirm that a consistent separator is used by replacing all digit characters with nul byte and checking length
+        if __class__.mapping[option_strings]["category"] in ("before", "after"):
+            # From https://stackoverflow.com/questions/32538305/using-translate-on-a-string-to-strip-digits-python-3
+            translation = str.maketrans("", "", "0123456789")
+            sep = set(argument_values.translate(translation))
+            if len(sep) > 2:
+                print("Error: Used multiple separators in date string")
+                sys.exit()
+            sep = str(sep.pop())
+            utils.validate_before_present(
+                argument_values,
+                ("%Y/%m/%d".replace("/", sep), "%m/%d/%Y".replace("/", sep)),
+            )
         argument_values = utils.append_category(
             argument_values, **self.mapping[option_strings]
         )
@@ -82,17 +95,15 @@ class MaxAction(ap.Action):
             argument_values = 500
         elif argument_values < 1 or argument_values > 500 or argument_values % 1 != 0:
             sys.exit(
-                "Invalid max {argument_values}. Must be integer between 1 and 500 inclusive."
+                f"Invalid max {argument_values}. Must be integer between 1 and 500 inclusive."
             )
         setattr(namespace, "max_emails", argument_values)
 
 
-class OutfileAction(ap.Action):
+class DirAction(ap.Action):
     def __call__(self, parser, namespace, argument_values, option_strings=None):
-        try:
-            os.path.exists(os.path.abspath(os.path.dirname(argument_values)))
-        except:
+        if not utils.validate_path(argument_values, lambda x: os.access(x, os.W_OK)):
             sys.exit(
-                f"File {argument_values!r} is not a valid relative path, or you lack write permission"
+                f"Directory {argument_values!r} is not a valid path, or you lack write permission"
             )
-        setattr(namespace, "outfile", argument_values)
+        setattr(namespace, "download-dir", argument_values)

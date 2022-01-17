@@ -1,5 +1,6 @@
 tests/
-src/Gmailtools/__pycache__/
+*__pycache__*
 src/Gmailtools.egg*
 dist/
 *.json
+*.pyc

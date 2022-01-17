@@ -5,6 +5,7 @@ import utils
 import argparse as ap
 import json
 import classes
+from os.path import join
 
 # Configure for plaintext decoding
 
@@ -48,8 +49,8 @@ parser.add_argument(
 parser.add_argument(
     "--filename",
     action=classes.QueryAction,
-    nargs="*",
-    help="""Attachment file name or extension""",
+    nargs="?",
+    help="""Attachment file name or extension to search for""",
 )
 parser.add_argument(
     "-b",
@@ -84,9 +85,16 @@ parser.add_argument(
 parser.add_argument(
     "-o",
     "--outfile",
+    type=ap.FileType("w+", errors="replace"),
     nargs="?",
-    action=classes.OutfileAction,
     help="Output file to write to",
+)
+parser.add_argument(
+    "-d",
+    "--download-dir",
+    help="Directory in which to download email attachments. Must be a valid absolute or relative path.",
+    action=classes.DirAction,
+    nargs="?",
 )
 parser.add_argument(
     "-q", "--quiet", action="store_true", help="Flag to suppress printing"
@@ -100,12 +108,14 @@ if args == {} or all(arg is None for arg in args.values()):
     sys.exit("Error: No arguments provided")
 max_emails = args.pop("max_emails")
 quiet = args.pop("quiet")
+# download = args.pop("download")
 
 # Choose between OR or AND for search terms
 combinator = " " if (OR := args.pop("or")) else " AND "
+outfile = args.pop("outfile")
+download_dir = args.pop("download_dir")
 args = {k: v for k, v in args.items() if v is not None}
-outfile = args.pop("outfile") if "outfile" in args.keys() else None
-request = ("{" * OR) + " ".join(args.values()) + "}" * OR
+request = ("{" * OR) + " ".join(args.values()) + ("}" * OR)
 
 messages = utils.page_response(
     gmail_service, max_emails=max_emails, userId="me", q=request
@@ -114,6 +124,7 @@ messages = utils.page_response(
 if len(messages) == 0:
     sys.exit(f"No messages matched query {request}")
 
+# Extract each payload, yielding MessagePart object
 raw_messages = [
     gmail_service.users()
     .messages()
@@ -121,10 +132,21 @@ raw_messages = [
     .execute()["payload"]
     for message in messages
 ]
-parsed_messages = dict([utils.parse_message(message) for message in raw_messages])
+parsed_messages = dict(
+    [utils.parse_message(gmail_service, message) for message in raw_messages]
+)
 if not quiet:
     for message in parsed_messages.values():
         utils.print_message(message)
+        utils.print_sep()
+# breakpoint()
 if outfile:
-    with open(outfile, "w+") as f:
-        json.dump(parsed_messages, f)
+    json.dump(parsed_messages, outfile)
+
+# Download attachments to specified directory
+if download_dir:
+    for message in parsed_messages:
+        for k, v in message.attachments:
+            path = join(download_dir, k)
+            with open(path, "wb") as f:
+                f.write(v)
