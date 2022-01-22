@@ -1,5 +1,0 @@
-[console_scripts]
-gmail_assign_label = Gmailtools.command:assign_label
-gmail_mark_read = Gmailtools.command:mark_read
-gmail_query_emails = Gmailtools.command:query_emails
-
