@@ -18,7 +18,6 @@ parser.add_argument(
     "-f",
     "--from",
     action=classes.QueryAction,
-    type=str,
     nargs="*",
     help="""Senders to query for""",
 )
@@ -91,14 +90,13 @@ parser.add_argument(
 )
 parser.add_argument(
     "-d",
-    "--download-dir",
+    "--download_dir",
+    type=str,
     help="Directory in which to download email attachments. Must be a valid absolute or relative path.",
     action=classes.DirAction,
     nargs="?",
 )
-parser.add_argument(
-    "-q", "--quiet", action="store_true", help="Flag to suppress printing"
-)
+parser.add_argument("-q", "--quiet", action="store_true", help="Suppress printing")
 parser.add_argument(
     "-O", "--or", action="store_true", help="""Use OR instead of AND combinator"""
 )
@@ -122,7 +120,7 @@ messages = utils.page_response(
 )
 
 if len(messages) == 0:
-    sys.exit(f"No messages matched query {request}")
+    sys.exit(f"No messages matched query {request!r}")
 
 # Extract each payload, yielding MessagePart object
 raw_messages = [
@@ -145,8 +143,11 @@ if outfile:
 
 # Download attachments to specified directory
 if download_dir:
-    for message in parsed_messages:
-        for k, v in message.attachments:
+    downloaded = []
+    for message in parsed_messages.values():
+        for k, v in message["attachments"].items():
             path = join(download_dir, k)
             with open(path, "wb") as f:
                 f.write(v)
+                downloaded.append(k)
+    print("Downloaded:\n" + "\n".join(downloaded) + "\ninto " + download_dir)

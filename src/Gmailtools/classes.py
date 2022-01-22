@@ -1,6 +1,7 @@
 import argparse as ap
 
-from Gmailtools import utils
+# from Gmailtools import utils
+import utils
 import sys
 import os
 
@@ -39,7 +40,6 @@ class TupleDict:
 
 class QueryAction(ap.Action):
 
-    ascii_replaces = {k: 0 for k in range(48, 48 + 10)}
     mapping = TupleDict(
         {
             ("-f", "--from"): {"category": "from", "sep": ":", "surround": ""},
@@ -106,4 +106,4 @@ class DirAction(ap.Action):
             sys.exit(
                 f"Directory {argument_values!r} is not a valid path, or you lack write permission"
             )
-        setattr(namespace, "download-dir", argument_values)
+        setattr(namespace, "download_dir", argument_values)

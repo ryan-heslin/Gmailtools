@@ -1,6 +1,10 @@
 tests/
-*__pycache__*
-src/Gmailtools.egg*
+__pycache__/
 dist/
 *.json
 *.pyc
+src/Gmailtools.egg-info/PKG-INFO
+src/Gmailtools.egg-info/SOURCES.txt
+src/Gmailtools/__pycache__/classes.cpython-38.pyc
+src/Gmailtools/__pycache__/command.cpython-38.pyc
+src/Gmailtools/__pycache__/utils.cpython-38.pyc

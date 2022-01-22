@@ -4,7 +4,6 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google.oauth2 import service_account
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -19,6 +18,7 @@ import os
 import datetime
 import base64
 import email
+from collections import deque
 
 from requests.models import HTTPError
 
@@ -135,23 +135,24 @@ def get_message(gmail_service, userId="me", **kwargs):
 def parse_message(gmail_service, message):
     """Traverse message to extract sender, recipient, date, and text"""
     header = extract_header(message["headers"])
-    parsed = extract_text(gmail_service, message=message, message_id=header["id"])
+    parsed = extract_fields(gmail_service, message=message, message_id=header["id"])
     message_id = header.pop("id")
     return message_id, {**header, **parsed}
 
 
-def extract_text(gmail_service, message, message_id):
+def extract_fields(gmail_service, message, message_id):
     """Recurses through message parts until plain text part is discovered"""
     out = {"body": None, "attachments": {}}
     # Based on https://stackoverflow.com/questions/25832631/download-attachments-from-gmail-using-gmail-api
     parts = [message]
+    # breakpoint()
     while parts:
         cur = parts.pop()
         if "multipart" in cur["mimeType"]:
             parts.extend(cur["parts"])
-        elif cur["mimeType"] == "text/plain":
+        if cur["mimeType"] == "text/plain":
             out["body"] = decode_message(cur["body"]["data"], constants.html_decoder)
-        elif cur["mimeType"] == "filename":
+        elif cur.get("filename", "" != ""):
             try:
                 data = cur["body"]["data"]
             except KeyError:
@@ -223,8 +224,11 @@ def decode_message(message, html_decoder=None):
 
 def format_print_dict(
     di,
-    subvalue_extract=lambda x: " ".join(x) if isinstance(x, list) and len(x) > 0 else x,
+    subvalue_extract=lambda x: " ".join(x)
+    if isinstance(x, list) and len(x) > 0
+    else format_print_dict(x),
     none_placeholder="None",
+    *args,
 ):
     """
     Given a dict, returns a formatted sting suitable for printing its key-value pairs. A function to
@@ -238,10 +242,11 @@ def format_print_dict(
     :param none_placeholder: String to print for keys and values that are :code:`None`, defaults to "None".
     :type none_placeholder: str, optional
     """
-    if type(di) is str:
+    if type(di) is not di:
         return di
     if not di:
         return "Nothing to display"
+    # ignores = {*args, None, [], {}}
     lpad = max([len(k) for k in di.keys()]) + 1
     fmt = "{:<" + str(lpad) + "}" + " {:" + str(lpad) + "}"
     return "\n".join(
@@ -294,7 +299,7 @@ def page_response(gmail_service, max_emails=500, *args, **kwargs):
         try:
             messages.extend(
                 response["messages"][
-                    0 : min(len(response["messages"]), max_emails - len(messages))
+                    : min(len(response["messages"]), max_emails - len(messages))
                 ]
             )
         except:
