@@ -4,6 +4,8 @@ import argparse as ap
 import utils
 import sys
 import os
+from functools import lru_cache
+from os.path import abspath
 
 
 class TupleDict:
@@ -31,11 +33,48 @@ class TupleDict:
         out = (v for k, v in self.dict.items() for subkey in k if var == subkey)
         try:
             return next(out)
-        except RuntimeError:
+        except StopIteration:
             raise KeyError(var)
 
     def __repr__(self) -> str:
         return self.dict.__repr__()
+
+
+class ParsedMessage(dict):
+    def __init__(
+        self,
+        id,
+        date,
+        sender=None,
+        recipient=None,
+        body=None,
+        subject=None,
+        attachments=None,
+    ):
+        self.id = id
+        self.date = date
+        self.sender = sender
+        self.recipient = recipient
+        self.body = body
+        self.subject = subject
+        self.attachments = {} if attachments is None else attachments
+
+    @property
+    def n_attachments(self):
+        return len(self.attachments)
+
+    @property
+    def data(self):
+        return {
+            "From": self.sender,
+            "To": self.recipient,
+            "Date": self.date,
+            "Body": self.body,
+            "Attachments": self.n_attachments,
+        }
+
+    def __repr__(self):
+        return utils.format_print_dict(self.data)
 
 
 class QueryAction(ap.Action):
@@ -102,8 +141,49 @@ class MaxAction(ap.Action):
 
 class DirAction(ap.Action):
     def __call__(self, parser, namespace, argument_values, option_strings=None):
-        if not utils.validate_path(argument_values, lambda x: os.access(x, os.W_OK)):
-            sys.exit(
-                f"Directory {argument_values!r} is not a valid path, or you lack write permission"
-            )
-        setattr(namespace, "download_dir", argument_values)
+        path = abspath(argument_values)
+        if not utils.validate_path(path, lambda x: os.access(x, os.W_OK)):
+            utils.path_err(argument_values)
+        setattr(namespace, "download_dir", path)
+
+
+class OptionsMenu:
+    """Simple options menu linking numbered options to actions"""
+
+    def __init__(self, header: str, options: dict, prompt="Enter option: "):
+        self.header = header
+        self.prompt = prompt
+        self.options = [x for x in options.keys()]
+        self.valid_range = [1, len(self.options)]
+        self.actions = {int(i + 1): v for i, v in enumerate(options.values())}
+        # Print padding
+        self._pad = len(str(max(self.actions.keys()))) + 1
+
+    def __repr__(self):
+        return "\n".join(
+            [self.header] + OptionsMenu.sequential_number(self.options, self._pad)
+        )
+
+    def __getitem__(self, num):
+        try:
+            num = int(num)
+        except:
+            print("Selection must be coercible to integer")
+            return None, None
+        # Return option and associated key - refactor this trash later
+        try:
+            # Return displayed menu item and corresponding action
+            return (self.options[num - 1], self.actions[num])
+        except KeyError:
+            print("Invalid selection")
+            return None, None
+
+    @staticmethod
+    def sequential_number(lst, lpad, offset=1) -> list:
+        fmt = "{:<" + str(lpad) + "} {:>" + str(lpad) + "}"
+        return [fmt.format(f"{i + offset}.", x) for i, x in enumerate(lst)]
+
+    def show_prompt(self):
+        print(self.__repr__() + "\n")
+        response = input(self.prompt)
+        return response

@@ -10,6 +10,7 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 
+from io import TextIOWrapper
 from functools import reduce
 
 import mimetypes
@@ -18,13 +19,22 @@ import os
 import datetime
 import base64
 import email
+import json
+from sys import exit
 from collections import deque
 
 from requests.models import HTTPError
 
-from Gmailtools import constants
+# from Gmailtools
+import constants
+from classes import ParsedMessage, OptionsMenu
 
 # Largely copied from Google's quickstart guide
+
+
+def path_err(path):
+    """Exit with error message if path is invalid"""
+    exit(f"{path} does not exist, or you lack write permission for it")
 
 
 def authenticate(
@@ -132,12 +142,12 @@ def get_message(gmail_service, userId="me", **kwargs):
     return gmail_service.users().messages().list(userId=userId, **kwargs).execute()
 
 
-def parse_message(gmail_service, message):
+def parse_message(gmail_service, messages):
     """Traverse message to extract sender, recipient, date, and text"""
-    header = extract_header(message["headers"])
-    parsed = extract_fields(gmail_service, message=message, message_id=header["id"])
-    message_id = header.pop("id")
-    return message_id, {**header, **parsed}
+    for message in messages:
+        header = extract_header(message["headers"])
+        parsed = extract_fields(gmail_service, message=message, message_id=header["id"])
+        yield {**header, **parsed}
 
 
 def extract_fields(gmail_service, message, message_id):
@@ -145,7 +155,6 @@ def extract_fields(gmail_service, message, message_id):
     out = {"body": None, "attachments": {}}
     # Based on https://stackoverflow.com/questions/25832631/download-attachments-from-gmail-using-gmail-api
     parts = [message]
-    # breakpoint()
     while parts:
         cur = parts.pop()
         if "multipart" in cur["mimeType"]:
@@ -181,8 +190,8 @@ def extract_header(header, to_extract=None):
     """Extracts metadata fields from a message object"""
     if to_extract is None:
         to_extract = {
-            "Delivered-To": "to",
-            "From": "from",
+            "Delivered-To": "recipient",
+            "From": "sender",
             "Subject": "subject",
             "Date": "date",
             "Message-ID": "id",
@@ -242,11 +251,10 @@ def format_print_dict(
     :param none_placeholder: String to print for keys and values that are :code:`None`, defaults to "None".
     :type none_placeholder: str, optional
     """
-    if type(di) is not di:
+    if type(di) is not dict:
         return di
     if not di:
         return "Nothing to display"
-    # ignores = {*args, None, [], {}}
     lpad = max([len(k) for k in di.keys()]) + 1
     fmt = "{:<" + str(lpad) + "}" + " {:" + str(lpad) + "}"
     return "\n".join(
@@ -262,21 +270,9 @@ def format_print_dict(
     )
 
 
-# Format email with headers printed above body
-def print_message(message):
-    """
-    Prints an email message object, displaying the sender, recipient, date, and
-    text, if present.
-
-    :param message: An :code:`email.message` object.
-    :type message: email.message
-    """
-    print(format_print_dict(message))
-
-
 def print_sep(char="_", length=80):
-    print((char * length) + "\n")
-    print("\n")
+    """Prints a line of underscores followed by newlines"""
+    print((char * length) + "\n\n")
 
 
 def page_response(gmail_service, max_emails=500, *args, **kwargs):
@@ -409,7 +405,7 @@ def send_message(service, message, user_id="me"):
 
 def validate_path(path, *args):
     """Confirms a path exists and user has write permission for its directory. Also applies arbitrary additional functions to validate the path"""
-    path = os.path.expandvars(os.path.expanduser(path))
+    path = os.path.abspath(os.path.expandvars(path))
     args = [
         lambda x: os.path.exists(os.path.abspath(x)),
         lambda x: os.access(os.path.dirname(x), os.W_OK),
@@ -421,3 +417,126 @@ def validate_path(path, *args):
 def reduce_keys(di, keys):
     """Retrieves a value in a nested dictionary by indexing a list of keys in order"""
     return reduce(lambda di, key: di[key], keys, di)
+
+
+"""Master function invoked when query_emails command is run"""
+
+
+def parse_emails(gmail_service, args, sub_args):
+    max_emails = args.pop("max_emails")
+    # Choose between OR or AND for search terms
+    combinator = " OR " if (OR := args.pop("or")) else " "
+    # output = args.pop("output")
+    # download_dir = args.pop("download_dir")
+    args = {k: v for k, v in args.items() if v is not None}
+    if args == {}:
+        exit("No arguments provided")
+
+    # request = ("{" * OR) + " ".join(args.values()) + ("}" * OR)
+    request = f" {combinator} ".join(args.values())
+
+    messages = page_response(
+        gmail_service, max_emails=max_emails, userId="me", q=request
+    )
+
+    if len(messages) == 0:
+        exit(f"No messages matched query {request!r}")
+
+    # Extract each payload, yielding MessagePart object
+    raw_messages = [
+        gmail_service.users()
+        .messages()
+        .get(userId="me", id=message["id"])
+        .execute()["payload"]
+        for message in messages
+    ]
+    gen = parse_message(gmail_service, raw_messages)
+    parsed_messages = {mess["id"]: ParsedMessage(**mess) for mess in gen}
+    actions = {
+        "print_emails": lambda: print_messages(parsed_messages, sub_args["await"]),
+        "store_emails": lambda: store_messages(
+            parsed_messages,
+            sub_args["output"],
+            validate=True,
+            verbose=sub_args["verbose"],
+        ),
+        "download_attachments": lambda: download_attachments(
+            parsed_messages, sub_args["download_dir"], verbose=sub_args["verbose"]
+        ),
+    }
+    # Call appropriate subcommand function
+    action = actions.get(
+        sub_args["subcommand"],
+        lambda *args: exit(f"Unknown subcommand {sub_args['subcommand']}"),
+    )
+    action()
+
+
+def print_messages(messages, await_=False):
+    print(f"{len(messages)} email(s) retrieved")
+    for message in messages.values():
+        print(message)
+        print_sep()
+    breakpoint()
+    if await_:
+        menu = OptionsMenu(
+            header="Select option for retrieved emails ",
+            options={
+                "Download attachments": lambda: download_attachments(
+                    messages, input("Directory: "), validate=True, verbose=True
+                ),
+                "Store emails": lambda: store_messages(
+                    messages, input("Storage file: "), validate=True, verbose=True
+                ),
+                "Refine search": lambda: input("Search arguments"),
+                "New search": lambda: 'command:query_emails(input("Search arguments"))',
+                "Quit": lambda: exit(0),
+            },
+        )
+        # Add message ids to query
+        # " OR ".join(f"rfc822msgid:{k}" for k in messages.keys())
+        while True:
+            if choice := menu[menu.show_prompt()][1]:
+                try:
+                    choice()
+                except SystemExit:
+                    choice()
+                except BaseException as e:
+                    print(f"Error: {e}")
+
+
+def download_attachments(messages, download_dir, validate=False, verbose=False):
+    if validate and not validate_path(download_dir):
+        path_err(download_dir)
+
+    downloaded = []
+    for message in messages.values():
+        for k, v in message.attachments.items():
+            path = os.path.join(download_dir, k)
+            with open(path, "wb") as f:
+                f.write(v)
+                downloaded.append(k)
+    if verbose:
+        if len(downloaded) > 0:
+            print("Downloaded:\n" + "\n".join(downloaded) + "\ninto " + download_dir)
+        else:
+            print("No attachments found")
+
+
+def store_messages(messages, output, validate=False, verbose=False):
+    filename = output.name if type(output) is TextIOWrapper else output
+    if validate and not validate_path(filename):
+        path_err(output)
+    messages = {k: v.data for k, v in messages.items()}
+    json.dump(messages, output)
+    if verbose:
+        print(f"Saved {len(messages)} email(s) to {filename}")
+
+
+def insert_args(args, extra_flag, extra_arg):
+    try:
+        which = args.index(extra_flag)
+        args[which + 1] += " " + extra_arg
+    except ValueError:
+        args.extend([extra_flag, extra_arg])
+    return args
