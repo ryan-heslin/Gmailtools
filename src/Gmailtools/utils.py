@@ -1,5 +1,4 @@
 # From https://developers.google.com/gmail/api/quickstart/python
-from __future__ import print_function
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -28,6 +27,8 @@ from requests.models import HTTPError
 # from Gmailtools
 import constants
 from classes import ParsedMessage, OptionsMenu
+
+from command import query_emails
 
 # Largely copied from Google's quickstart guide
 
@@ -155,17 +156,17 @@ def extract_fields(gmail_service, message, message_id):
     out = {"body": None, "attachments": {}}
     # Based on https://stackoverflow.com/questions/25832631/download-attachments-from-gmail-using-gmail-api
     parts = [message]
+    # breakpoint()
     while parts:
         cur = parts.pop()
         if "multipart" in cur["mimeType"]:
             parts.extend(cur["parts"])
-        if cur["mimeType"] == "text/plain":
+        if cur["mimeType"] == "text/plain":  # vs text/html?
             out["body"] = decode_message(cur["body"]["data"], constants.html_decoder)
-        elif cur.get("filename", "" != ""):
-            try:
-                data = cur["body"]["data"]
-            except KeyError:
-                data = (
+        elif cur.get("filename"):
+            data = cur["body"].get(
+                "data",
+                (
                     gmail_service.users()
                     .messages()
                     .attachments()
@@ -176,8 +177,9 @@ def extract_fields(gmail_service, message, message_id):
                     )
                     .execute()["data"]
                 )
-            except:
-                data = None
+                if cur["body"].get("attachmentId")
+                else None,
+            )
             if data:
                 data = base64.urlsafe_b64decode(data.encode("UTF-8"))
             # Key attachment data to names
@@ -422,18 +424,18 @@ def reduce_keys(di, keys):
 """Master function invoked when query_emails command is run"""
 
 
-def parse_emails(gmail_service, args, sub_args):
-    max_emails = args.pop("max_emails")
+def parse_emails(gmail_service, search_args, sub_args):
+    max_emails = search_args.pop("max_emails")
     # Choose between OR or AND for search terms
-    combinator = " OR " if (OR := args.pop("or")) else " "
-    # output = args.pop("output")
-    # download_dir = args.pop("download_dir")
-    args = {k: v for k, v in args.items() if v is not None}
-    if args == {}:
+    combinator = " OR " if (OR := search_args.pop("or")) else " "
+    # output = search_args.pop("output")
+    # download_dir = search_args.pop("download_dir")
+    search_args = {k: v for k, v in search_args.items() if v is not None}
+    if search_args == {}:
         exit("No arguments provided")
 
-    # request = ("{" * OR) + " ".join(args.values()) + ("}" * OR)
-    request = f" {combinator} ".join(args.values())
+    # request = ("{" * OR) + " ".join(search_args.values()) + ("}" * OR)
+    request = f" {combinator} ".join(search_args.values())
 
     messages = page_response(
         gmail_service, max_emails=max_emails, userId="me", q=request
@@ -453,7 +455,9 @@ def parse_emails(gmail_service, args, sub_args):
     gen = parse_message(gmail_service, raw_messages)
     parsed_messages = {mess["id"]: ParsedMessage(**mess) for mess in gen}
     actions = {
-        "print_emails": lambda: print_messages(parsed_messages, sub_args["await"]),
+        "print_emails": lambda: print_messages(
+            parsed_messages, search_args, sub_args["await"]
+        ),
         "store_emails": lambda: store_messages(
             parsed_messages,
             sub_args["output"],
@@ -472,7 +476,7 @@ def parse_emails(gmail_service, args, sub_args):
     action()
 
 
-def print_messages(messages, await_=False):
+def print_messages(messages, search_args, await_=False):
     print(f"{len(messages)} email(s) retrieved")
     for message in messages.values():
         print(message)
@@ -488,13 +492,14 @@ def print_messages(messages, await_=False):
                 "Store emails": lambda: store_messages(
                     messages, input("Storage file: "), validate=True, verbose=True
                 ),
-                "Refine search": lambda: input("Search arguments"),
-                "New search": lambda: 'command:query_emails(input("Search arguments"))',
+                "Refine search": lambda: new_search(
+                    messages, search_args, mode="additional"
+                ),
+                "New search": lambda: new_search(messages, search_args, mode="new"),
                 "Quit": lambda: exit(0),
             },
         )
         # Add message ids to query
-        # " OR ".join(f"rfc822msgid:{k}" for k in messages.keys())
         while True:
             if choice := menu[menu.show_prompt()][1]:
                 try:
@@ -533,10 +538,27 @@ def store_messages(messages, output, validate=False, verbose=False):
         print(f"Saved {len(messages)} email(s) to {filename}")
 
 
+def new_search(search_args, messages, mode):
+    """Prompt user for new search. Mode argument controls"""
+    # Not sure this correct: just has to be any one message ID in original set
+    if mode not in ("new", "additional"):
+        raise ValueError(f"Mode must be 'new' or 'additional', not {mode!r}")
+    extra = f"rfc822msgid:( {' OR '.join(messages.keys())})"
+    prompt = f"Enter {mode} search terms: "
+    while True:
+        try:
+            new = input(prompt).split(" ")
+            if mode == "additional":
+                insert_args(new, "extra", extra)
+            query_emails(new_args=new, prev_args=search_args)
+        except Exception as e:
+            print(f"Error parsing search: {e}")
+
+
 def insert_args(args, extra_flag, extra_arg):
+    """In-place?"""
     try:
         which = args.index(extra_flag)
         args[which + 1] += " " + extra_arg
     except ValueError:
         args.extend([extra_flag, extra_arg])
-    return args

@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-
 import sys
 import utils
 import argparse as ap

@@ -5,6 +5,7 @@ import utils
 import sys
 import os
 from functools import lru_cache
+from collections import ChainMap
 from os.path import abspath
 
 
@@ -38,6 +39,22 @@ class TupleDict:
 
     def __repr__(self) -> str:
         return self.dict.__repr__()
+
+
+class PartialUpdateDict(dict):
+    """Scalar values are updated as usual, but strings are appended instead"""
+
+    def __init__(self, *args):
+        super().__init__(self, *args)
+
+    def update(self, *args, **kwargs):
+        for k, v in dict(ChainMap(*args, **kwargs)).items():
+            new = (
+                v
+                if type(self.get(k)) is not str or type(v) is not str
+                else f"{self.__getitem__(k)} {v}"
+            )
+            self.__setitem__(k, new)
 
 
 class ParsedMessage(dict):

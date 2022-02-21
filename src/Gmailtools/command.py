@@ -6,7 +6,8 @@ import sys
 from Gmailtools import utils
 import argparse as ap
 
-from Gmailtools import classes
+# from Gmailtools import classes
+from classes import PartialUpdateDict
 
 """Functions containing command-line programs to use API"""
 
@@ -106,81 +107,157 @@ def mark_read():
 # Configure for plaintext decoding
 
 
-def query_emails():
+def query_emails(new_args=None, prev_args=None):
+
+    import sys
+    import utils
+    import argparse as ap
+    import json
+    import classes
+    from os.path import join, abspath
+    import constants
+
+    # Configure for plaintext decoding
     gmail_service = utils.authenticate()
 
     parser = ap.ArgumentParser(description="""Specify email search parameters""")
-    parser.add_argument(
+    subparsers = parser.add_subparsers(
+        title="Subcommands",
+        description="Subcommands to apply to retrieved emails",
+        dest="subcommand",
+        help="Subcommands",
+        required=False,
+    )
+
+    # Subparsers
+    parser_download = subparsers.add_parser(
+        "download_attachments",
+        help="Download attached files in a specified directory",
+        aliases=["dl"],
+    )
+    parser.set_defaults(print_emails=True)
+    parser_store = subparsers.add_parser(
+        "store_emails",
+        help="Save retrieved emails to a specified JSON file",
+        aliases=["se"],
+    )
+    parser_print = subparsers.add_parser(
+        "print_emails", help="Print formatted emails to stdout", aliases=["pe"]
+    )
+    parser_print.set_defaults(func=utils.parse_emails)
+    parser_store.set_defaults(func=utils.parse_emails)
+    parser_download.set_defaults(func=utils.parse_emails)
+    # subparsers.set_defaults(subcommand="print_emails")
+
+    parser_download.add_argument(
+        "-d",
+        "--download_dir",
+        help="Directory in which to download email attachments. Must be a valid absolute or relative path. Defaults to working directory.",
+        default=abspath("."),
+        action=classes.DirAction,
+        nargs="?",
+    )
+
+    parser_download.add_argument(
+        "-v",
+        "--verbose",
+        help="""Print message describing command actions""",
+        action="store_true",
+    )
+
+    parser_download.add_argument(
+        "--force",
+        help="Overwrite existing files with the same names as download attachments",
+        action="store_true",
+    )
+    parser_store.add_argument(
+        "--output",
+        type=ap.FileType("w+", errors="replace"),
+        help="Output file to write to",
+    )
+    parser_store.add_argument(
+        "-v",
+        "--verbose",
+        help="""Print message describing command actions""",
+        action="store_true",
+    )
+    parser_print.add_argument(
+        "--await",
+        action="store_true",
+        help="""Await further input after printing emails""",
+    )
+
+    search_args_parser = ap.ArgumentParser(description="Search arguments")
+    search_args_parser.add_argument(
         "-f",
         "--from",
         action=classes.QueryAction,
-        type=str,
         nargs="*",
         help="""Senders to query for""",
     )
-    parser.add_argument(
+    search_args_parser.add_argument(
         "-t",
         "--to",
         action=classes.QueryAction,
         nargs="*",
         help="""Receivers to query for""",
     )
-    parser.add_argument(
+    search_args_parser.add_argument(
         "-w",
         "--word",
         action=classes.QueryAction,
         nargs="*",
         help="""Words to query for""",
     )
-    parser.add_argument(
+    search_args_parser.add_argument(
         "-l",
         "--label",
         action=classes.QueryAction,
         nargs="*",
         help="""Labels to query for""",
     )
-    parser.add_argument(
+    search_args_parser.add_argument(
         "-s",
         "--subject",
         action=classes.QueryAction,
         nargs="*",
         help="""Words in the subject line to query for""",
     )
-    parser.add_argument(
+    search_args_parser.add_argument(
         "--filename",
         action=classes.QueryAction,
-        nargs="*",
-        help="""Attachment file name or extension""",
+        nargs="?",
+        help="""Attachment file name or extension to search for""",
     )
-    parser.add_argument(
+    search_args_parser.add_argument(
         "-b",
         "--before",
         action=classes.QueryAction,
         nargs="?",
         help="""Date before (as YYYY/DD/MM or MM/DD/YYYY)""",
     )
-    parser.add_argument(
+    search_args_parser.add_argument(
         "-a",
         "--after",
         action=classes.QueryAction,
         nargs="?",
         help="""Date after (as YYYY/DD/MM or MM/DD/YYYY)""",
     )
-    parser.add_argument(
+    search_args_parser.add_argument(
         "-c",
         "--category",
         action=classes.QueryAction,
         nargs="?",
         help="""Email category""",
     )
-    parser.add_argument(
+    search_args_parser.add_argument(
         "-e",
         "--extra",
         nargs="?",
         help="""Additional query (quoted) to append to search""",
     )
     # 500 is API max
-    parser.add_argument(
+    search_args_parser.add_argument(
         "-m",
         "--max_emails",
         type=int,
@@ -189,54 +266,23 @@ def query_emails():
         default=500,
         action=classes.MaxAction,
     )
-    parser.add_argument(
-        "-o",
-        "--outfile",
-        nargs="?",
-        action=classes.OutfileAction,
-        help="Output file to write to",
+
+    search_args_parser.add_argument(
+        "-o", "--or", action="store_true", help="""Use OR instead of AND combinator"""
     )
-    parser.add_argument(
-        "-q", "--quiet", action="store_true", help="Flag to suppress printing"
-    )
-    parser.add_argument(
-        "-O", "--or", action="store_true", help="""Use OR instead of AND combinator"""
-    )
+    if new_args:
+        sub_args, search_args = parser.parse_known_args(new_args)
+    else:
+        sub_args, search_args = parser.parse_known_args()
 
-    args = vars(parser.parse_args())
-    # Exit if no arguments are supplied
-    if all(arg is None or type(arg) is bool for arg in args.values()):
-        sys.exit("Error: No arguments provided")
-    max_emails = args.pop("max_emails")
-    quiet = args.pop("quiet")
+    # Only retain old search args; old subcommand args assumed irrelevant
+    if prev_args:
+        prev_args = PartialUpdateDict(prev_args)
+        prev_args.update(search_args)
+        # TODO: Update dict of parsed search args wiith previous, combining shared keys (usually list extending)
 
-    # Choose between OR or AND for search terms
-    combinator = " " if (OR := args.pop("or")) else " AND "
-    args = {k: v for k, v in args.items() if v is not None}
-    outfile = args.pop("outfile") if "outfile" in args.keys() else None
-    request = ("{" * OR) + combinator.join(args.values()) + ("}" * OR)
+    # Insert additional arguments passed directly to function. Invoked if user does a refined search of an initial search.
+    # args = utils.insert_args(extra_args) if extra_args else args
+    search_args = search_args_parser.parse_args(search_args)
 
-    messages = utils.page_response(
-        gmail_service, max_emails=max_emails, userId="me", q=request
-    )
-
-    if len(messages) == 0:
-        sys.exit(f"No messages matched query {request}")
-
-    # Retrieve message texts
-    raw_messages = [
-        gmail_service.users()
-        .messages()
-        .get(userId="me", id=message["id"])
-        .execute()["payload"]
-        for message in messages
-    ]
-    breakpoint()
-
-    parsed_messages = dict([utils.parse_message(message) for message in raw_messages])
-    if not quiet:
-        for message in parsed_messages.values():
-            utils.print_message(message)
-    if outfile:
-        with open(outfile, "w+") as f:
-            json.dump(parsed_messages, f)
+    sub_args.func(gmail_service, vars(search_args), vars(sub_args))
