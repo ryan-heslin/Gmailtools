@@ -26,7 +26,7 @@ from requests.models import HTTPError
 
 # from Gmailtools
 import constants
-from classes import ParsedMessage, OptionsMenu
+import classes
 
 from command import query_emails
 
@@ -113,10 +113,13 @@ def delete_label(service, label_id):
         print(f"Error deleting label: {e}. Make sure the label if {label_id} exists")
 
 
-def append_category(lst, category, sep=":", surround=""):
+def append_category(lst, category, joiner=" ", sep=":", surround="", group_or=False):
     """Helper to transform a list of strings into a string of key-value pairs with separating and surrounding fields."""
     lst = [lst] if type(lst) is str else lst
-    return " ".join([f"{surround}{category}{sep}{x}{surround}" for x in lst])
+    out = joiner.join([f"{surround}{category}{sep}{x}{surround}" for x in lst])
+    if group_or:
+        out = "{" + out + "}"
+    return out
 
 
 def validate_before_present(date_string, formats):
@@ -427,7 +430,7 @@ def reduce_keys(di, keys):
 def parse_emails(gmail_service, search_args, sub_args):
     max_emails = search_args.pop("max_emails")
     # Choose between OR or AND for search terms
-    combinator = " OR " if (OR := search_args.pop("or")) else " "
+    combinator = " OR " if (search_args.pop("or")) else " "
     # output = search_args.pop("output")
     # download_dir = search_args.pop("download_dir")
     search_args = {k: v for k, v in search_args.items() if v is not None}
@@ -435,14 +438,16 @@ def parse_emails(gmail_service, search_args, sub_args):
         exit("No arguments provided")
 
     # request = ("{" * OR) + " ".join(search_args.values()) + ("}" * OR)
-    request = f" {combinator} ".join(search_args.values())
+    request = combinator.join(search_args.values())
+    print(request)
 
     messages = page_response(
         gmail_service, max_emails=max_emails, userId="me", q=request
     )
 
     if len(messages) == 0:
-        exit(f"No messages matched query {request!r}")
+        print(f"No messages matched query {request!r}")
+        exit()
 
     # Extract each payload, yielding MessagePart object
     raw_messages = [
@@ -453,7 +458,7 @@ def parse_emails(gmail_service, search_args, sub_args):
         for message in messages
     ]
     gen = parse_message(gmail_service, raw_messages)
-    parsed_messages = {mess["id"]: ParsedMessage(**mess) for mess in gen}
+    parsed_messages = {mess["id"]: classes.ParsedMessage(**mess) for mess in gen}
     actions = {
         "print_emails": lambda: print_messages(
             parsed_messages, search_args, sub_args["await"]
@@ -481,10 +486,10 @@ def print_messages(messages, search_args, await_=False):
     for message in messages.values():
         print(message)
         print_sep()
-    breakpoint()
+    # breakpoint()
     if await_:
-        menu = OptionsMenu(
-            header="Select option for retrieved emails ",
+        menu = classes.OptionsMenu(
+            header="Select option for retrieved emails:",
             options={
                 "Download attachments": lambda: download_attachments(
                     messages, input("Directory: "), validate=True, verbose=True
@@ -500,12 +505,14 @@ def print_messages(messages, search_args, await_=False):
             },
         )
         # Add message ids to query
+        # TODO doing new search calls this function again, but doesn't seem to work correctly; fix. New/expanded search itself seems to work
         while True:
             if choice := menu[menu.show_prompt()][1]:
                 try:
                     choice()
+                    choice = None  # Reset
                 except SystemExit:
-                    choice()
+                    exit()
                 except BaseException as e:
                     print(f"Error: {e}")
 
@@ -538,19 +545,28 @@ def store_messages(messages, output, validate=False, verbose=False):
         print(f"Saved {len(messages)} email(s) to {filename}")
 
 
-def new_search(search_args, messages, mode):
+def new_search(messages, search_args, mode):
     """Prompt user for new search. Mode argument controls"""
     # Not sure this correct: just has to be any one message ID in original set
     if mode not in ("new", "additional"):
         raise ValueError(f"Mode must be 'new' or 'additional', not {mode!r}")
-    extra = f"rfc822msgid:( {' OR '.join(messages.keys())})"
+    # extra = "{" + " OR ".join(f"rfc822msgid:{k}" for k in messages.keys()) + "}"
+    ids = " ".join([k for k in messages.keys()])
     prompt = f"Enter {mode} search terms: "
     while True:
         try:
-            new = input(prompt).split(" ")
+            while (new_args := input(prompt).split(" "))[0][0] != "-" and new_args[
+                0
+            ] != "print_emails":
+                print("Flags must be used in search")
+            # breakpoint()
             if mode == "additional":
-                insert_args(new, "extra", extra)
-            query_emails(new_args=new, prev_args=search_args)
+                insert_args(new_args, "--ids", ids)
+            if not new_args[0] == "print_emails":
+                new_args.insert(0, "print_emails")
+            if not new_args[1] == "--await":
+                new_args.insert(1, "--await")
+            query_emails(new_args=new_args, prev_args=search_args)
         except Exception as e:
             print(f"Error parsing search: {e}")
 

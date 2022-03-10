@@ -45,10 +45,10 @@ class PartialUpdateDict(dict):
     """Scalar values are updated as usual, but strings are appended instead"""
 
     def __init__(self, *args):
-        super().__init__(self, *args)
+        super().__init__(*args)
 
-    def update(self, *args, **kwargs):
-        for k, v in dict(ChainMap(*args, **kwargs)).items():
+    def update(self, di):
+        for k, v in di.items():
             new = (
                 v
                 if type(self.get(k)) is not str or type(v) is not str
@@ -85,6 +85,7 @@ class ParsedMessage(dict):
         return {
             "From": self.sender,
             "To": self.recipient,
+            "Subject": self.subject,
             "Date": self.date,
             "Body": self.body,
             "Attachments": self.n_attachments,
@@ -115,6 +116,12 @@ class QueryAction(ap.Action):
             ("--filename",): {"category": "filename", "sep": ":", "surround": ""},
             ("-b", "--before"): {"category": "before", "sep": ":", "surround": ""},
             ("-a", "--after"): {"category": "after", "sep": ":", "surround": ""},
+            ("-i", "--ids"): {
+                "category": "rfc822msgid",
+                "sep": ":",
+                "group_or": True,
+                "joiner": " OR ",
+            },
         }
     )
 

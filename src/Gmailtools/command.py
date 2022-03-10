@@ -7,7 +7,7 @@ from Gmailtools import utils
 import argparse as ap
 
 # from Gmailtools import classes
-from classes import PartialUpdateDict
+import classes
 
 """Functions containing command-line programs to use API"""
 
@@ -95,11 +95,10 @@ def assign_label():
 def mark_read():
     gmail_service = utils.authenticate()
     response = utils.page_response(gmail_service, q="in:inbox is:unread")
-    ids = [message["id"] for message in response]
 
-    for ID in ids:
+    for message in response:
         gmail_service.users().messages().modify(
-            userId="me", id=ID, body={"removeLabelIds": ["UNREAD"]}
+            userId="me", id=message["id"], body={"removeLabelIds": ["UNREAD"]}
         ).execute()
     print("All emails marked read")
 
@@ -251,6 +250,13 @@ def query_emails(new_args=None, prev_args=None):
         help="""Email category""",
     )
     search_args_parser.add_argument(
+        "-i",
+        "--ids",
+        action=classes.QueryAction,
+        nargs="*",
+        help="""RFC message IDs to include""",
+    )
+    search_args_parser.add_argument(
         "-e",
         "--extra",
         nargs="?",
@@ -270,19 +276,22 @@ def query_emails(new_args=None, prev_args=None):
     search_args_parser.add_argument(
         "-o", "--or", action="store_true", help="""Use OR instead of AND combinator"""
     )
+    # breakpoint()
     if new_args:
         sub_args, search_args = parser.parse_known_args(new_args)
     else:
         sub_args, search_args = parser.parse_known_args()
 
     # Only retain old search args; old subcommand args assumed irrelevant
-    if prev_args:
-        prev_args = PartialUpdateDict(prev_args)
-        prev_args.update(search_args)
-        # TODO: Update dict of parsed search args wiith previous, combining shared keys (usually list extending)
+    # TODO: Update dict of parsed search args wiith previous, combining shared keys (usually list extending)
 
     # Insert additional arguments passed directly to function. Invoked if user does a refined search of an initial search.
     # args = utils.insert_args(extra_args) if extra_args else args
-    search_args = search_args_parser.parse_args(search_args)
+    search_args = vars(search_args_parser.parse_args(search_args))
+    if prev_args:
+        # breakpoint()
+        prev_args = classes.PartialUpdateDict(prev_args)
+        prev_args.update(search_args)
+        search_args = prev_args
 
-    sub_args.func(gmail_service, vars(search_args), vars(sub_args))
+    sub_args.func(gmail_service, search_args, vars(sub_args))
