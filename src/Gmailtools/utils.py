@@ -33,11 +33,6 @@ from command import query_emails
 # Largely copied from Google's quickstart guide
 
 
-def path_err(path):
-    """Exit with error message if path is invalid"""
-    exit(f"{path} does not exist, or you lack write permission for it")
-
-
 def authenticate(
     scopes=constants.SCOPES,
     token_path=os.path.expanduser(os.environ.get("TOKEN_PATH", "~/token.json")),
@@ -408,15 +403,18 @@ def send_message(service, message, user_id="me"):
     return message
 
 
-def validate_path(path, *args):
-    """Confirms a path exists and user has write permission for its directory. Also applies arbitrary additional functions to validate the path"""
-    path = os.path.abspath(os.path.expandvars(path))
-    args = [
-        lambda x: os.path.exists(os.path.abspath(x)),
-        lambda x: os.access(os.path.dirname(x), os.W_OK),
-        *args,
-    ]
-    return all(fn(path) for fn in args)
+def normalize_path(path):
+    """Expand ~ and all environment variables"""
+    return os.path.expanduser(os.path.expandvars(path))
+
+
+def path_exists(path):
+    return os.path.exists(os.path.abspath(path))
+
+
+def path_writeable(path, allow_overwrite=True):
+    path = os.path.dirname(path) if not os.path.isdir(path) else path
+    return os.access(path, os.W_OK) and (allow_overwrite or not path_exists(path))
 
 
 def reduce_keys(di, keys):
@@ -439,7 +437,6 @@ def parse_emails(gmail_service, search_args, sub_args):
 
     # request = ("{" * OR) + " ".join(search_args.values()) + ("}" * OR)
     request = combinator.join(search_args.values())
-    print(request)
 
     messages = page_response(
         gmail_service, max_emails=max_emails, userId="me", q=request
@@ -470,7 +467,10 @@ def parse_emails(gmail_service, search_args, sub_args):
             verbose=sub_args["verbose"],
         ),
         "download_attachments": lambda: download_attachments(
-            parsed_messages, sub_args["download_dir"], verbose=sub_args["verbose"]
+            parsed_messages,
+            sub_args["download_dir"],
+            verbose=sub_args["verbose"],
+            force=sub_args["force"],
         ),
     }
     # Call appropriate subcommand function
@@ -486,7 +486,6 @@ def print_messages(messages, search_args, await_=False):
     for message in messages.values():
         print(message)
         print_sep()
-    # breakpoint()
     if await_:
         menu = classes.OptionsMenu(
             header="Select option for retrieved emails:",
@@ -505,7 +504,6 @@ def print_messages(messages, search_args, await_=False):
             },
         )
         # Add message ids to query
-        # TODO doing new search calls this function again, but doesn't seem to work correctly; fix. New/expanded search itself seems to work
         while True:
             if choice := menu[menu.show_prompt()][1]:
                 try:
@@ -517,30 +515,37 @@ def print_messages(messages, search_args, await_=False):
                     print(f"Error: {e}")
 
 
-def download_attachments(messages, download_dir, validate=False, verbose=False):
-    if validate and not validate_path(download_dir):
-        path_err(download_dir)
+def download_attachments(
+    messages, download_dir, validate=False, verbose=False, force=False
+):
+    download_dir = normalize_path(download_dir)
+    if validate and not path_writeable(download_dir):
+        raise classes.InvalidPathError(download_dir)
 
     downloaded = []
     for message in messages.values():
         for k, v in message.attachments.items():
             path = os.path.join(download_dir, k)
-            with open(path, "wb") as f:
-                f.write(v)
-                downloaded.append(k)
+            # Only overwrite existing files if instructed
+            if force or not path_exists(path):
+                with open(path, "wb") as f:
+                    f.write(v)
+                    downloaded.append(k)
     if verbose:
         if len(downloaded) > 0:
             print("Downloaded:\n" + "\n".join(downloaded) + "\ninto " + download_dir)
         else:
-            print("No attachments found")
+            print("No attachments downloaded")
 
 
 def store_messages(messages, output, validate=False, verbose=False):
-    filename = output.name if type(output) is TextIOWrapper else output
-    if validate and not validate_path(filename):
-        path_err(output)
+    filename = normalize_path(output.name if type(output) is TextIOWrapper else output)
+
+    if validate and not path_writeable(filename):
+        raise classes.InvalidPathError(filename)
     messages = {k: v.data for k, v in messages.items()}
-    json.dump(messages, output)
+    with open(filename, "w") as f:
+        json.dump(messages, f)
     if verbose:
         print(f"Saved {len(messages)} email(s) to {filename}")
 
@@ -562,6 +567,8 @@ def new_search(messages, search_args, mode):
             # breakpoint()
             if mode == "additional":
                 insert_args(new_args, "--ids", ids)
+            else:
+                search_args = None
             if not new_args[0] == "print_emails":
                 new_args.insert(0, "print_emails")
             if not new_args[1] == "--await":

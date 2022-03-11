@@ -211,3 +211,9 @@ class OptionsMenu:
         print(self.__repr__() + "\n")
         response = input(self.prompt)
         return response
+
+
+class InvalidPathError(Exception):
+    def __init__(self, path):
+        self.message = f"{path} does not exist, or you lack write permission for it"
+        super().__init__(self.message)
