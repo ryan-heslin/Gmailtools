@@ -1,4 +1,3 @@
-# From https://developers.google.com/gmail/api/quickstart/python
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -20,15 +19,13 @@ import base64
 import email
 import json
 from sys import exit
-from collections import deque
 
 from requests.models import HTTPError
 
-# from Gmailtools
-import constants
-import classes
+from Gmailtools import constants
+from Gmailtools import classes
 
-from command import query_emails
+from Gmailtools import command
 
 # Largely copied from Google's quickstart guide
 
@@ -413,19 +410,26 @@ def path_exists(path):
 
 
 def path_writeable(path, allow_overwrite=True):
-    path = os.path.dirname(path) if not os.path.isdir(path) else path
-    return os.access(path, os.W_OK) and (allow_overwrite or not path_exists(path))
+    """Given a directory, determines whether the user has write permission. Given a file, determines whether
+    they have write permission in the containing directory and
+    optionally checks if the file already exists"""
+    if os.path.isdir(path):
+        out = os.access(path, os.W_OK)
+    else:
+        out = os.access(os.path.dirname(path), os.W_OK) and (
+            allow_overwrite or not path_exists(path)
+        )
+    return out
 
 
 def reduce_keys(di, keys):
-    """Retrieves a value in a nested dictionary by indexing a list of keys in order"""
+    """Retrieve a value in a nested dictionary by indexing a list of keys in order"""
     return reduce(lambda di, key: di[key], keys, di)
 
 
-"""Master function invoked when query_emails command is run"""
-
-
 def parse_emails(gmail_service, search_args, sub_args):
+    """Conduct a search for emails using given parameters,
+    collects the results, and execute associated subcommand"""
     max_emails = search_args.pop("max_emails")
     # Choose between OR or AND for search terms
     combinator = " OR " if (search_args.pop("or")) else " "
@@ -482,6 +486,7 @@ def parse_emails(gmail_service, search_args, sub_args):
 
 
 def print_messages(messages, search_args, await_=False):
+    """Prints all recovered emails in order"""
     print(f"{len(messages)} email(s) retrieved")
     for message in messages.values():
         print(message)
@@ -518,6 +523,8 @@ def print_messages(messages, search_args, await_=False):
 def download_attachments(
     messages, download_dir, validate=False, verbose=False, force=False
 ):
+    """Downloads attachments in returned emails to a specialized directory,
+    overwriting existing files only if specified"""
     download_dir = normalize_path(download_dir)
     if validate and not path_writeable(download_dir):
         raise classes.InvalidPathError(download_dir)
@@ -539,9 +546,10 @@ def download_attachments(
 
 
 def store_messages(messages, output, validate=False, verbose=False):
+    """Save returned email messages to a specified path"""
     filename = normalize_path(output.name if type(output) is TextIOWrapper else output)
 
-    if validate and not path_writeable(filename):
+    if validate and not path_writeable(filename, allow_overwrite=True):
         raise classes.InvalidPathError(filename)
     messages = {k: v.data for k, v in messages.items()}
     with open(filename, "w") as f:
@@ -551,11 +559,10 @@ def store_messages(messages, output, validate=False, verbose=False):
 
 
 def new_search(messages, search_args, mode):
-    """Prompt user for new search. Mode argument controls"""
-    # Not sure this correct: just has to be any one message ID in original set
+    """Prompt user for a new search. The mode argument controls
+    whether to append to an existing search or start a new one"""
     if mode not in ("new", "additional"):
         raise ValueError(f"Mode must be 'new' or 'additional', not {mode!r}")
-    # extra = "{" + " OR ".join(f"rfc822msgid:{k}" for k in messages.keys()) + "}"
     ids = " ".join([k for k in messages.keys()])
     prompt = f"Enter {mode} search terms: "
     while True:
@@ -573,13 +580,13 @@ def new_search(messages, search_args, mode):
                 new_args.insert(0, "print_emails")
             if not new_args[1] == "--await":
                 new_args.insert(1, "--await")
-            query_emails(new_args=new_args, prev_args=search_args)
+            command.query_emails(new_args=new_args, prev_args=search_args)
         except Exception as e:
             print(f"Error parsing search: {e}")
 
 
 def insert_args(args, extra_flag, extra_arg):
-    """In-place?"""
+    """Inserts new arguments in arguments list in place"""
     try:
         which = args.index(extra_flag)
         args[which + 1] += " " + extra_arg

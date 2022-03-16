@@ -7,7 +7,6 @@ from Gmailtools import utils
 import argparse as ap
 
 # from Gmailtools import classes
-import classes
 
 """Functions containing command-line programs to use API"""
 
@@ -107,14 +106,21 @@ def mark_read():
 
 
 def query_emails(new_args=None, prev_args=None):
+    """
+    Implement query_emails command, which retrieves user query_emails
+    matching search parameters. Parses command-line arguments
+    by default, but may be called with additional arguments, or optionally a dict of previously used arguments to limit the search.
 
-    import sys
+    :param new_args: List of command-line arguments and values, parsed in addition to command-line arguments
+    :type: new_args: list, optional
+    :param prev_args: [dict] Dict of argument-value pairs representing a previous search's parameters. Old string arguments are concatenated with any new specifications of the same arguments, non-string types are replaced, and any not specified by the new search are retained.
+    :type: prev_args: dict, optional
+    """
+
     import utils
     import argparse as ap
-    import json
     import classes
-    from os.path import join, abspath
-    import constants
+    from os.path import abspath
 
     # Configure for plaintext decoding
     gmail_service = utils.authenticate()

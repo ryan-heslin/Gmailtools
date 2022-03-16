@@ -1,12 +1,10 @@
 import argparse as ap
 
-# from Gmailtools import utils
-import utils
+from Gmailtools import utils
+
+# import utils
 import sys
 import os
-from functools import lru_cache
-from collections import ChainMap
-from os.path import abspath
 
 
 class TupleDict:
@@ -42,7 +40,8 @@ class TupleDict:
 
 
 class PartialUpdateDict(dict):
-    """Scalar values are updated as usual, but strings are appended instead"""
+    """Dict subclass for which non-string scalar values are updated as usual, but string values
+    have new values appended instead"""
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -96,6 +95,7 @@ class ParsedMessage(dict):
 
 
 class QueryAction(ap.Action):
+    """General action class for email query parameters"""
 
     mapping = TupleDict(
         {
@@ -153,6 +153,9 @@ class QueryAction(ap.Action):
 
 
 class MaxAction(ap.Action):
+    """Special action to ensure :code:`max_emails` parameter
+    is between 1 and 500 inclusive"""
+
     def __call__(self, parser, namespace, argument_values, option_strings=None):
         if argument_values is None:
             argument_values = 500
@@ -164,10 +167,12 @@ class MaxAction(ap.Action):
 
 
 class DirAction(ap.Action):
+    """Checks whether user has write permission in a directory"""
+
     def __call__(self, parser, namespace, argument_values, option_strings=None):
-        path = abspath(argument_values)
-        if not utils.validate_path(path, lambda x: os.access(x, os.W_OK)):
-            utils.path_err(argument_values)
+        path = utils.normalize_path(argument_values)
+        if not utils.path_writeable(path, lambda x: os.access(x, os.W_OK)):
+            raise InvalidPathError(path)
         setattr(namespace, "download_dir", path)
 
 
@@ -214,6 +219,8 @@ class OptionsMenu:
 
 
 class InvalidPathError(Exception):
+    """Raises exception if a path does not exist, or user lacks write permission"""
+
     def __init__(self, path):
         self.message = f"{path} does not exist, or you lack write permission for it"
         super().__init__(self.message)
