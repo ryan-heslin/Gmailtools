@@ -6,6 +6,7 @@ import sys
 import argparse as ap
 
 from Gmailtools import utils
+from Gmailtools import classes
 
 """Functions containing command-line programs to use API"""
 
@@ -286,10 +287,7 @@ def query_emails(new_args=None, prev_args=None):
         sub_args, search_args = parser.parse_known_args()
 
     # Only retain old search args; old subcommand args assumed irrelevant
-    # TODO: Update dict of parsed search args wiith previous, combining shared keys (usually list extending)
-
     # Insert additional arguments passed directly to function. Invoked if user does a refined search of an initial search.
-    # args = utils.insert_args(extra_args) if extra_args else args
     search_args = vars(search_args_parser.parse_args(search_args))
     if prev_args:
         # breakpoint()
