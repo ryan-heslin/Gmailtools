@@ -46,7 +46,7 @@
 </div>
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">append_category</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lst</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">category</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">':'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surround</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span></dt>
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">append_category</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lst</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">category</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">joiner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'</span> <span class="pre">'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">':'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surround</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_or</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Helper to transform a list of strings into a string of key-value pairs with separating and surrounding fields.</p>
 </dd></dl>
 
@@ -125,19 +125,26 @@ Largely copied from <a class="reference external" href="https://stackoverflow.co
 
 <dl class="py function">
 <dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">download_attachments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">messages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">download_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Downloads attachments in returned emails to a specialized directory,
+overwriting existing files only if specified</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">extract_fields</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gmail_service</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_id</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Recurses through message parts until plain text part is discovered</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">extract_header</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_extract</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Extracts metadata fields from a message object</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">extract_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parts</span></span></em><span class="sig-paren">)</span></dt>
-<dd><p>Recurses through message parts until plain text part is discovered</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">format_print_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">di</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subvalue_extract=&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">none_placeholder='None'</span></span></em><span class="sig-paren">)</span></dt>
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">format_print_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">di</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subvalue_extract=&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">none_placeholder='None'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*args</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Given a dict, returns a formatted sting suitable for printing its key-value pairs. A function to
 process dictionary entries, and placeholders for keys or values that are <code class="code docutils literal notranslate"><span class="pre">None</span></code>,
 may be specified.</p>
@@ -160,6 +167,12 @@ may be specified.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">insert_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_flag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_arg</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Inserts new arguments in arguments list in place</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">label_decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">service</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Get a mapping of label IDs to names (the user-facing label names)</p>
 </dd></dl>
@@ -168,6 +181,19 @@ may be specified.</p>
 <dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">list_filters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">service</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>List all filters active in a user account</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">new_search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">messages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Prompt user for a new search. The mode argument controls
+whether to append to an existing search or start a new one</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">normalize_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Expand ~ and all environment variables</p>
 </dd></dl>
 
 <dl class="py function">
@@ -193,8 +219,23 @@ response object and flattening the result as a list.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">parse_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span></dt>
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">parse_emails</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gmail_service</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_args</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Conduct a search for emails using given parameters,
+collects the results, and execute associated subcommand</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">parse_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gmail_service</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">messages</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Traverse message to extract sender, recipient, date, and text</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">path_writeable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Given a directory, determines whether the user has write permission. Given a file, determines whether
+they have write permission in the containing directory and
+optionally checks if the file already exists</p>
 </dd></dl>
 
 <dl class="py function">
@@ -205,20 +246,20 @@ response object and flattening the result as a list.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">print_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span></dt>
-<dd><p>Prints an email message object, displaying the sender, recipient, date, and
-text, if present.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>message</strong> (<em>email.message</em>) – An <code class="code docutils literal notranslate"><span class="pre">email.message</span></code> object.</p>
-</dd>
-</dl>
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">print_messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">messages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">await_</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Prints all recovered emails in order</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">print_sep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">char</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'_'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">80</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Prints a line of underscores followed by newlines</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">reduce_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">di</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span></em><span class="sig-paren">)</span></dt>
-<dd><p>Retrieves a value in a nested dictionary by indexing a list of keys in order</p>
+<dd><p>Retrieve a value in a nested dictionary by indexing a list of keys in order</p>
 </dd></dl>
 
 <dl class="py function">
@@ -241,6 +282,12 @@ Largely copied from quickstart guide.</p>
 <dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">set_wd_to_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Set working directory to the directory containing the current file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">store_messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">messages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Save returned email messages to a specified path</p>
 </dd></dl>
 
 <dl class="py function">

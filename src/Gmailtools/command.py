@@ -3,10 +3,9 @@
 import json
 import sys
 
-from Gmailtools import utils
 import argparse as ap
 
-# from Gmailtools import classes
+from Gmailtools import utils
 
 """Functions containing command-line programs to use API"""
 
@@ -117,9 +116,7 @@ def query_emails(new_args=None, prev_args=None):
     :type: prev_args: dict, optional
     """
 
-    import utils
-    import argparse as ap
-    import classes
+    from Gmailtools import utils
     from os.path import abspath
 
     # Configure for plaintext decoding

@@ -11,6 +11,8 @@ from email import encoders
 from io import TextIOWrapper
 from functools import reduce
 
+from requests.models import HTTPError
+
 import mimetypes
 
 import os
@@ -20,11 +22,9 @@ import email
 import json
 from sys import exit
 
-from requests.models import HTTPError
 
 from Gmailtools import constants
 from Gmailtools import classes
-
 from Gmailtools import command
 
 # Largely copied from Google's quickstart guide

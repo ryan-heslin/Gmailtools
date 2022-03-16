@@ -41,7 +41,7 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">append_category</span></code>(lst, category[, sep, surround])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">append_category</span></code>(lst, category[, joiner, ...])</p></td>
 <td><p>Helper to transform a list of strings into a string of key-value pairs with separating and surrounding fields.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">authenticate</span></code>([scopes, token_path, ...])</p></td>
@@ -59,17 +59,23 @@
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">delete_label</span></code>(service, label_id)</p></td>
 <td><p>Delete a label from its ID</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">download_attachments</span></code>(messages, download_dir)</p></td>
+<td><p>Downloads attachments in returned emails to a specialized directory, overwriting existing files only if specified</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">extract_fields</span></code>(gmail_service, message, ...)</p></td>
+<td><p>Recurses through message parts until plain text part is discovered</p></td>
+</tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">extract_header</span></code>(header[, to_extract])</p></td>
 <td><p>Extracts metadata fields from a message object</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">extract_text</span></code>(parts)</p></td>
-<td><p>Recurses through message parts until plain text part is discovered</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_print_dict</span></code>(di[, subvalue_extract, ...])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_print_dict</span></code>(di[, subvalue_extract, ...])</p></td>
 <td><p>Given a dict, returns a formatted sting suitable for printing its key-value pairs.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_message</span></code>(gmail_service[, userId])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_message</span></code>(gmail_service[, userId])</p></td>
 <td><p>Retrieve a message given a user ID and message ID</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">insert_args</span></code>(args, extra_flag, extra_arg)</p></td>
+<td><p>Inserts new arguments in arguments list in place</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">label_decode</span></code>(service[, id_key])</p></td>
 <td><p>Get a mapping of label IDs to names (the user-facing label names)</p></td>
@@ -77,23 +83,41 @@
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">list_filters</span></code>(service)</p></td>
 <td><p>List all filters active in a user account</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">new_search</span></code>(messages, search_args, mode)</p></td>
+<td><p>Prompt user for a new search.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_path</span></code>(path)</p></td>
+<td><p>Expand ~ and all environment variables</p></td>
+</tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">package_message</span></code>(message)</p></td>
 <td><p>Encodes message and places it in object suitable for API request</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">page_response</span></code>(gmail_service[, max_emails])</p></td>
 <td><p>Parses a response to a query for emails, iterating over each page in the response object and flattening the result as a list.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_message</span></code>(message)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_emails</span></code>(gmail_service, search_args, ...)</p></td>
+<td><p>Conduct a search for emails using given parameters, collects the results, and execute associated subcommand</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_message</span></code>(gmail_service, messages)</p></td>
 <td><p>Traverse message to extract sender, recipient, date, and text</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_message</span></code>(message, sender, to, subject)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">path_exists</span></code>(path)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">path_writeable</span></code>(path[, allow_overwrite])</p></td>
+<td><p>Given a directory, determines whether the user has write permission.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_message</span></code>(message, sender, to, subject)</p></td>
 <td><p>Fills in &quot;to&quot;, &quot;from&quot;, and &quot;subject&quot; fields of an <code class="code docutils literal notranslate"><span class="pre">email.message</span></code> object</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">print_message</span></code>(message)</p></td>
-<td><p>Prints an email message object, displaying the sender, recipient, date, and text, if present.</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">print_messages</span></code>(messages, search_args[, await_])</p></td>
+<td><p>Prints all recovered emails in order</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">print_sep</span></code>([char, length])</p></td>
+<td><p>Prints a line of underscores followed by newlines</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">reduce_keys</span></code>(di, keys)</p></td>
-<td><p>Retrieves a value in a nested dictionary by indexing a list of keys in order</p></td>
+<td><p>Retrieve a value in a nested dictionary by indexing a list of keys in order</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">send_message</span></code>(service, message[, user_id])</p></td>
 <td><p>Sends an email message for a given user.</p></td>
@@ -101,7 +125,10 @@
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_wd_to_file</span></code>(file)</p></td>
 <td><p>Set working directory to the directory containing the current file</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_before_present</span></code>(date_string, formats)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">store_messages</span></code>(messages, output[, validate, ...])</p></td>
+<td><p>Save returned email messages to a specified path</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_before_present</span></code>(date_string, formats)</p></td>
 <td><p>Tries to parse a date string by various formats, checking each until it finds one before the current system date.</p></td>
 </tr>
 </tbody>

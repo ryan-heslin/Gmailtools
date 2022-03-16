@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import utils
+from Gmailtools import utils
 
 utils.set_wd_to_file(__file__)
 gmail_service = utils.authenticate()
