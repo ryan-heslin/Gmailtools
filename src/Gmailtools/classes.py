@@ -76,6 +76,14 @@ class ParsedMessage(dict):
         self.attachments = {} if attachments is None else attachments
 
     @property
+    def _longest_attachment(self):
+        return (
+            0
+            if self.n_attachments == 0
+            else max(len(x) for x in self.attachments.keys())
+        )
+
+    @property
     def n_attachments(self):
         return len(self.attachments)
 
@@ -91,7 +99,19 @@ class ParsedMessage(dict):
         }
 
     def __repr__(self):
-        return utils.format_print_dict(self.data)
+        out = utils.format_print_dict(
+            {k: v for k, v in self.data.items() if k != "Attachments"}
+        )
+        if self.n_attachments > 0:
+
+            out += "Attachments:\n" + "\n".join(
+                (
+                    OptionsMenu.sequential_number(
+                        self.attachments, self._longest_attachment
+                    )
+                )
+            )
+        return out
 
 
 class QueryAction(ap.Action):

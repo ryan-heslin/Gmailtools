@@ -22,8 +22,8 @@ import email
 import json
 from sys import exit
 
-
 from Gmailtools import constants
+
 from Gmailtools import classes
 from Gmailtools import command
 
@@ -480,7 +480,7 @@ def parse_emails(gmail_service, search_args, sub_args):
     # Call appropriate subcommand function
     action = actions.get(
         sub_args["subcommand"],
-        lambda *args: exit(f"Unknown subcommand {sub_args['subcommand']}"),
+        lambda *args: exit(f"Unknown subcommand {sub_args['subcommand']!r}"),
     )
     action()
 

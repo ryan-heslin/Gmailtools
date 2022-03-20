@@ -8,6 +8,9 @@ import argparse as ap
 from Gmailtools import utils
 from Gmailtools import classes
 
+# from Gmailtools import constants
+import constants
+
 """Functions containing command-line programs to use API"""
 
 
@@ -147,9 +150,9 @@ def query_emails(new_args=None, prev_args=None):
     parser_print = subparsers.add_parser(
         "print_emails", help="Print formatted emails to stdout", aliases=["pe"]
     )
-    parser_print.set_defaults(func=utils.parse_emails)
-    parser_store.set_defaults(func=utils.parse_emails)
-    parser_download.set_defaults(func=utils.parse_emails)
+    parser_print.set_defaults(func=utils.parse_emails, name="print_emails")
+    parser_store.set_defaults(func=utils.parse_emails, name="store_emails")
+    parser_download.set_defaults(func=utils.parse_emails, name="download_attachments")
     # subparsers.set_defaults(subcommand="print_emails")
 
     parser_download.add_argument(
@@ -290,9 +293,13 @@ def query_emails(new_args=None, prev_args=None):
     # Insert additional arguments passed directly to function. Invoked if user does a refined search of an initial search.
     search_args = vars(search_args_parser.parse_args(search_args))
     if prev_args:
-        # breakpoint()
         prev_args = classes.PartialUpdateDict(prev_args)
         prev_args.update(search_args)
         search_args = prev_args
+    sub_args = vars(sub_args)
+    # Expand command alias
+    sub_args["subcommand"] = constants.SUBCOMMAND_ALIASES.get(
+        sub_args["subcommand"], sub_args["subcommand"]
+    )
 
-    sub_args.func(gmail_service, search_args, vars(sub_args))
+    sub_args["func"](gmail_service, search_args, sub_args)

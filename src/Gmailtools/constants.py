@@ -15,3 +15,9 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
     "https://www.googleapis.com/auth/gmail.compose",
 ]
+
+SUBCOMMAND_ALIASES = {
+    "dl": "download_attachments",
+    "pe": "print_emails",
+    "se": "store_emails",
+}
