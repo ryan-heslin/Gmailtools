@@ -8,8 +8,7 @@ import argparse as ap
 from Gmailtools import utils
 from Gmailtools import classes
 
-# from Gmailtools import constants
-import constants
+from Gmailtools import constants
 
 """Functions containing command-line programs to use API"""
 

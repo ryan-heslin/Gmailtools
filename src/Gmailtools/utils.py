@@ -156,11 +156,9 @@ def extract_fields(gmail_service, message, message_id):
         cur = parts.pop()
         if "multipart" in cur["mimeType"]:
             parts.extend(cur["parts"])
-        if cur["mimeType"] == "text/plain":  # vs text/html?
-            out["body"] = decode_message(cur["body"]["data"], constants.html_decoder)
-        elif cur.get("filename"):
+        if cur["body"].get("attachmentId"):
             data = cur["body"].get(
-                "data",
+                "data",  # May need API request to retrieve data
                 (
                     gmail_service.users()
                     .messages()
@@ -171,14 +169,17 @@ def extract_fields(gmail_service, message, message_id):
                         id=cur["body"]["attachmentId"],
                     )
                     .execute()["data"]
-                )
-                if cur["body"].get("attachmentId")
-                else None,
+                ),
             )
             if data:
                 data = base64.urlsafe_b64decode(data.encode("UTF-8"))
-            # Key attachment data to names
-            out["attachments"][cur["filename"]] = data
+                # Key attachment data to names
+                out["attachments"][cur["filename"]] = data
+        # Beware: attachments can be text/plain
+        elif cur["mimeType"] == "text/plain" and cur["body"].get(
+            "data"
+        ):  # vs text/html?
+            out["body"] = decode_message(cur["body"]["data"], constants.html_decoder)
 
     return out
 
