@@ -414,6 +414,7 @@ def path_writeable(path, allow_overwrite=True):
     """Given a directory, determines whether the user has write permission. Given a file, determines whether
     they have write permission in the containing directory and
     optionally checks if the file already exists"""
+    path = os.path.abspath(path)
     if os.path.isdir(path):
         out = os.access(path, os.W_OK)
     else:
