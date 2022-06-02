@@ -1,31 +1,25 @@
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
-
-from io import TextIOWrapper
-from functools import reduce
-
-from requests.models import HTTPError
-
-import mimetypes
-
-import os
-import datetime
 import base64
+import datetime
 import email
 import json
+import mimetypes
+import os
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from functools import reduce
+from io import TextIOWrapper
 from sys import exit
-
-from Gmailtools import constants
 
 from Gmailtools import classes
 from Gmailtools import command
+from Gmailtools import constants
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from requests.models import HTTPError
 
 # Largely copied from Google's quickstart guide
 
@@ -548,7 +542,7 @@ def download_attachments(
 
 
 def store_messages(messages, output, validate=False, verbose=False):
-    """Save returned email messages to a specified path"""
+    """Saves returned email messages to a specified path"""
     filename = normalize_path(output.name if type(output) is TextIOWrapper else output)
 
     if validate and not path_writeable(filename, allow_overwrite=True):
@@ -561,7 +555,7 @@ def store_messages(messages, output, validate=False, verbose=False):
 
 
 def new_search(messages, search_args, mode):
-    """Prompt user for a new search. The mode argument controls
+    """Prompts user for a new search. The mode argument controls
     whether to append to an existing search or start a new one"""
     if mode not in ("new", "additional"):
         raise ValueError(f"Mode must be 'new' or 'additional', not {mode!r}")

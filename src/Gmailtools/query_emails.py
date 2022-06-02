@@ -14,7 +14,9 @@ import constants
 gmail_service = utils.authenticate()
 
 
-parser = ap.ArgumentParser(description="""Specify email search parameters""")
+parser = ap.ArgumentParser(
+    description="""Specify email search parameters""", add_help=False
+)
 subparsers = parser.add_subparsers(
     title="Subcommands",
     description="Subcommands to apply to retrieved emails",
@@ -152,8 +154,17 @@ search_args_parser.add_argument(
 search_args_parser.add_argument(
     "-o", "--or", action="store_true", help="""Use OR instead of AND combinator"""
 )
+
+parser.add_argument(
+    "-h", "--help", action="store_true", help="Print this help message and exit"
+)
 # Insert additional arguments passed directly to function. Invoked if user does a refined search of an initial search.
 # args = utils.insert_args(extra_args) if extra_args else args
 search_args = search_args_parser.parse_args(search_args)
+parsed = vars(sub_args)
+if "help" in sub_args.keys():
+    parser.print_help()
+    search_args_parser.print_help()
+    sys.exit()
 
 sub_args.func(gmail_service, vars(search_args), vars(sub_args))

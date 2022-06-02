@@ -1,14 +1,11 @@
 #!/usr/bin/python3
-
+import argparse as ap
 import json
 import sys
 
-import argparse as ap
-
-from Gmailtools import utils
 from Gmailtools import classes
-
 from Gmailtools import constants
+from Gmailtools import utils
 
 """Functions containing command-line programs to use API"""
 
@@ -29,7 +26,7 @@ def assign_label():
         "--json-index",
         nargs="*",
         default=[],
-        help="""One or more keys, in the sequence needed to retrieve a list of email addresses in 
+        help="""One or more keys, in the sequence needed to retrieve a list of email addresses in
             the JSON provided to the \"file\" argument, (e.g., \"students\" \"emails\" if the desired list of emails is keyed to \"emails\" within \"students.\" Defaults to the empty list (corresponding to a flat JSON with no nested keys). """,
     )
     parser.add_argument(
@@ -125,7 +122,9 @@ def query_emails(new_args=None, prev_args=None):
     # Configure for plaintext decoding
     gmail_service = utils.authenticate()
 
-    parser = ap.ArgumentParser(description="""Specify email search parameters""")
+    parser = ap.ArgumentParser(
+        description="""Specify email search parameters""", add_help=False
+    )
     subparsers = parser.add_subparsers(
         title="Subcommands",
         description="Subcommands to apply to retrieved emails",
@@ -282,6 +281,9 @@ def query_emails(new_args=None, prev_args=None):
     search_args_parser.add_argument(
         "-o", "--or", action="store_true", help="""Use OR instead of AND combinator"""
     )
+    parser.add_argument(
+        "-h", "--help", action="store_true", help="Print this help message and exit"
+    )
     # breakpoint()
     if new_args:
         sub_args, search_args = parser.parse_known_args(new_args)
@@ -296,6 +298,15 @@ def query_emails(new_args=None, prev_args=None):
         prev_args.update(search_args)
         search_args = prev_args
     sub_args = vars(sub_args)
+
+    if all(arg is None for arg in sub_args.values()):
+        print("No arguments provided.")
+        sys.exit()
+
+    if sub_args.get("help"):
+        parser.print_help()
+        search_args_parser.print_help()
+        sys.exit()
     # Expand command alias
     sub_args["subcommand"] = constants.SUBCOMMAND_ALIASES.get(
         sub_args["subcommand"], sub_args["subcommand"]
