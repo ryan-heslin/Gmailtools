@@ -16,6 +16,7 @@ from Gmailtools import classes
 from Gmailtools import command
 from Gmailtools import constants
 from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -69,6 +70,22 @@ def authenticate(
             except Exception as e:
                 print(f"Error writing token: {e}")
     service = build("gmail", "v1", credentials=creds)
+    return service
+
+
+def service_authenticate(service_path, email):
+    # Authenticate from service account credentials
+    # Problem: requires admin authorization for G Suite
+    # workspace, which AU is, but
+    # I can't log in to the
+    # GOogle Admin console to enable it.
+    credentials = service_account.Credentials.from_service_account_file(
+        service_path, scopes=constants.SCOPES
+    )
+    credentials = credentials.with_subject(
+        email
+    )  # Authorize for specific email address
+    service = build("gmail", "v1", credentials=credentials)
     return service
 
 
